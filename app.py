@@ -9,14 +9,26 @@ warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
 
-PKL_FILE = r"C:\Users\정영록\Desktop\부논문\ulcer_prediction.pkl"
+# GitHub RAW URL (네 레포 기준)
+PKL_URL = "https://raw.githubusercontent.com/Yeongrok93/UlcerPredcition/main/model/ulcer_prediction.pkl"
+PKL_FILE = "ulcer_prediction.pkl"
 
-def load_model():
+def download_and_load_model():
+    """Download model from GitHub if not exists, then load it."""
     if not os.path.exists(PKL_FILE):
-        raise FileNotFoundError(f"❌ Cannot Find File: {PKL_FILE}")
+        print("⬇️ Model file not found. Downloading from GitHub...")
+        response = requests.get(PKL_URL, timeout=30)
+        response.raise_for_status()  
+        with open(PKL_FILE, "wb") as f:
+            f.write(response.content)
+        print("✅ Model downloaded successfully.")
+
     return joblib.load(PKL_FILE)
 
-model = load_model()
+
+# Flask 시작 시 모델 로드
+model = download_and_load_model()
+
 
 @app.route('/')
 def home():
