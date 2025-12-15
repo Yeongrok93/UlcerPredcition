@@ -3,8 +3,8 @@ services:
     name: ulcer-prediction
     env: python
     plan: free
+    runtime: python-3.11.9
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.18
+
+
