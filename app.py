@@ -2,32 +2,28 @@ from flask import Flask, render_template, request, jsonify
 import joblib
 import numpy as np
 import pandas as pd
+import requests
 import warnings
 import os
-import requests
 
 warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
 
-# GitHub RAW URL (네 레포 기준)
 PKL_URL = "https://raw.githubusercontent.com/Yeongrok93/UlcerPredcition/main/model/ulcer_prediction.pkl"
 PKL_FILE = "ulcer_prediction.pkl"
 
 def download_and_load_model():
-    """Download model from GitHub if not exists, then load it."""
-    if not os.path.exists(PKL_FILE):
-        print("⬇️ Model file not found. Downloading from GitHub...")
-        response = requests.get(PKL_URL, timeout=30)
-        response.raise_for_status()  
-        with open(PKL_FILE, "wb") as f:
-            f.write(response.content)
-        print("✅ Model downloaded successfully.")
-
+    """항상 GitHub에서 최신 pkl 받아오기 (디스크 캐시 문제 방지)."""
+    print("⬇️ Downloading latest model from GitHub...")
+    response = requests.get(PKL_URL, timeout=30)
+    response.raise_for_status()
+    with open(PKL_FILE, "wb") as f:
+        f.write(response.content)
+    print(f"✅ Downloaded: {os.path.getsize(PKL_FILE)} bytes")
     return joblib.load(PKL_FILE)
 
 
-# Flask 시작 시 모델 로드
 model = download_and_load_model()
 
 
@@ -38,14 +34,12 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # 입력값 수집
-        rass = float(request.form['feature1'])          
-        strength = float(request.form['feature2'])      
-        tmax = float(request.form['feature3'])          
-        tmin = float(request.form['feature4'])          
-        incontinence = float(request.form['feature5'])  
+        rass = float(request.form['feature1'])
+        strength = float(request.form['feature2'])
+        tmax = float(request.form['feature3'])
+        tmin = float(request.form['feature4'])
+        incontinence = float(request.form['feature5'])
 
-        # Input validation
         if not (-5 <= rass <= 4):
             return jsonify({"error": "Level of consciousness (RASS) must be between -5 and +4."})
         if not (0 <= strength <= 10):
@@ -56,9 +50,7 @@ def predict():
 
         probability = model.predict_proba(new_data)[0, 1] * 100
 
-        return jsonify({
-            "probability": round(probability, 1)
-        })
+        return jsonify({"probability": round(probability, 1)})
 
     except Exception as e:
         return jsonify({"error": str(e)})
@@ -66,4 +58,3 @@ def predict():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
